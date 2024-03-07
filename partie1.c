@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h> 
 #include "bibliothequeTfm.h"
 #include <string.h>
 #include <unistd.h>
@@ -6,7 +7,27 @@
 #include <time.h>
 #define TAILLE_MAX 100
 
-int afficheMenuAdmin() {
+#ifdef _WIN32
+#include <conio.h> 
+#else 
+#include <termios.h> 
+#include <unistd.h> 
+#endif
+int getch() 
+{
+    struct termios oldt, newt;
+    int ch;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    return ch;
+}
+
+int afficheMenuAdmin() 
+{
     int choix;
     do {
         printf("\n");
@@ -66,13 +87,13 @@ int verifierLoginMdp(const char* Fichier, const char* loginSaisi, const char* md
     char mdpFichier[TAILLE_MAX];
     char* token;
 
-    int verification = 0; // Initialisation à 0
+    int verification = 0; 
 
 
     FILE* infoApprenant = fopen(Fichier, "r");
     if (infoApprenant == NULL) {
         printf("Erreur lors de l'ouverture du fichier.\n");
-        return 0; // Retourner 0 en cas d'erreur
+        return 0; 
     }
 
     while (fgets(ligne, TAILLE_MAX, infoApprenant) != NULL) {
@@ -86,7 +107,7 @@ int verifierLoginMdp(const char* Fichier, const char* loginSaisi, const char* md
 
                 if (strcmp(loginSaisi, loginFichier) == 0 && strcmp(mdpSaisi, mdpFichier) == 0) {
                     fclose(infoApprenant);
-                    return 1; // Retourner 1 si les identifiants sont valides
+                    return 1; 
                 }
             }
         }
@@ -96,8 +117,7 @@ int verifierLoginMdp(const char* Fichier, const char* loginSaisi, const char* md
     return 0; 
 }
 
-int authentification()
-{
+int authentification() {
     char loginSaisi[TAILLE_MAX];
     char mdpSaisi[TAILLE_MAX];
     int c;
@@ -113,23 +133,21 @@ int authentification()
 
     printf("Mot de passe: ");
 
-    struct termios oldTerm, newTerm;
-    tcgetattr(STDIN_FILENO, &oldTerm);
-    newTerm = oldTerm;
-    newTerm.c_lflag &= ~(ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newTerm);
+    int i = 0;
+    char b;
+    while (i < TAILLE_MAX - 1 && (b = getch()) != '\n') {
+        putchar('*'); 
+        mdpSaisi[i++] = b;
+    }
+    mdpSaisi[i] = '\0'; 
 
-    fgets(mdpSaisi, TAILLE_MAX, stdin);
-    mdpSaisi[strcspn(mdpSaisi, "\n")] = '\0'; 
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldTerm);
     printf("\n");
 
-    if(verifierLoginMdp("infoApprenant.txt", loginSaisi, mdpSaisi)) {
-        c = afficheMenuApprenant();
+    if(verifierLoginMdp("infoAdmin.txt", loginSaisi, mdpSaisi)) {
+        c=1;
         return c;
-    } else if(verifierLoginMdp("infoAdmin.txt", loginSaisi, mdpSaisi)) {
-        c = afficheMenuAdmin();
+    } else if(verifierLoginMdp("infoApprenant.txt", loginSaisi, mdpSaisi)) {
+        c=2;
         return c;
     } else {
         puts("Login ou mot de passe invalide.");
@@ -137,22 +155,7 @@ int authentification()
     }
 }
 
-int sousMenuAdmin(int c)
-{
-    int ch;
-    if(c==3)
-    {
-        puts("classes:");
-        puts("1-Dev web/mobile");
-        puts("2-Dev Data");
-        puts("3-Referent digital");
-        scanf("%d",&ch);
-    }
-    return ch;
-}
-
-
-void obtenirNomPrenom(int id, char *nom, char *prenom) 
+/*void obtenirNomPrenom(int id, char *nom, char *prenom) 
 {
     FILE *fichier = fopen("listeDev.txt", "r");
     if (fichier == NULL) {
@@ -173,122 +176,81 @@ void obtenirNomPrenom(int id, char *nom, char *prenom)
     prenom[0] = '\0';
 }
 
-void marquerPresenceId(int id, const char *nomFichier) 
+void marquerPresenceAdmin()
 {
-    FILE *fichierPresence = fopen("liste_presence.txt", "r+");
-    if (fichierPresence == NULL) {
-        printf("Erreur lors de l'ouverture du fichier de présence.\n");
-        return;
-    }
+    char choix[TAILLE_MAX]; // Utiliser une chaîne de caractères pour stocker l'entrée de l'utilisateur
+    do {
+        printf("Entrez votre code ou 'q' pour quitter : ");
+        scanf("%s", choix);
 
-    fseek(fichierPresence, 0, SEEK_END);
-    int tailleFichier = ftell(fichierPresence);
-    if (tailleFichier == 0) {
-        char date[20];
-        time_t maintenant = time(NULL);
-        struct tm *tm_maintenant = localtime(&maintenant);
-        strftime(date, sizeof(date), "%Y-%m-%d", tm_maintenant);
-        fprintf(fichierPresence, "Date:%s\n", date);
-    } else {
-        fseek(fichierPresence, -21, SEEK_END); // Se déplacer avant la fin pour lire la date
-        char datePrecedente[20];
-        fscanf(fichierPresence, "Date:%s\n", datePrecedente);
-
-        // Lire la date actuelle
-        char dateActuelle[20];
-        time_t maintenant = time(NULL);
-        struct tm *tm_maintenant = localtime(&maintenant);
-        strftime(dateActuelle, sizeof(dateActuelle), "%Y-%m-%d", tm_maintenant);
-
-        // Comparer les dates
-        if (strcmp(dateActuelle, datePrecedente) != 0) {
-            // Les dates sont différentes, écrire la nouvelle date
-            fseek(fichierPresence, 0, SEEK_END); // Aller à la fin du fichier
-            fprintf(fichierPresence, "\nDate:%s\n", dateActuelle);
+        if (strcmp(choix, "q") == 0) 
+        {
+            break;
         }
-    }
 
-    // Écrire la nouvelle entrée de présence
-    char nom[50];
-    char prenom[50];
-    obtenirNomPrenom(id, nom, prenom);
-    if (nom[0] != '\0' && prenom[0] != '\0') {
-        fprintf(fichierPresence, "%d %s %s\n", id, prenom, nom);
-        printf("Presence marquée pour %s %s.\n", prenom, nom);
-    } else {
-        printf("ID non trouvé dans la liste des étudiants.\n");
-    }
+        int id = atoi(choix); // Convertir la chaîne en entier
 
-    // Fermer le fichier de présence
-    fclose(fichierPresence);
-}
+        char nom[TAILLE_MAX];
+        char prenom[TAILLE_MAX];
+        obtenirNomPrenom(id, nom, prenom);
 
-void marquerPresenceApprenant()
-{
-    int id;
-    printf("Entrez votre ID: ");
-    scanf("%d", &id);
+        if (nom[0] == '\0' || prenom[0] == '\0') 
+        {
+            printf("L'etudiant n'existe pas.\n");
+        } else {
+            FILE *fichierPresence = fopen("liste_presence.txt", "r");
+            if (fichierPresence == NULL) {
+                printf("Erreur lors de l'ouverture du fichier de présence.\n");
+                return;
+            }
 
-    char nom[50];
-    char prenom[50];
-    obtenirNomPrenom(id, nom, prenom);
+            char date[20];
+            time_t maintenant = time(NULL);
+            struct tm *tm_maintenant = localtime(&maintenant);
+            strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", tm_maintenant);
 
-    if (nom[0] == '\0' || prenom[0] == '\0') {
-        printf("ID non trouvé dans la liste des étudiants.\n");
-        return;
-    }
+            int dejaPresent = 0;
+            char ligne[TAILLE_MAX];
+            while (fgets(ligne, sizeof(ligne), fichierPresence) != NULL) {
+                int idFichier;
+                sscanf(ligne, "%d", &idFichier);
+                if (idFichier == id) 
+                {
+                    dejaPresent = 1;
+                    break;
+                }
+            }
+            fclose(fichierPresence);
 
-    FILE *fichierPresence = fopen("liste_presence.txt", "a");
-    if (fichierPresence == NULL) {
-        printf("Erreur lors de l'ouverture du fichier de présence.\n");
-        return;
-    }
+            if (dejaPresent) {
+                printf("L'étudiant est déjà marqué présent.\n");
+            } else {
+                fichierPresence = fopen("liste_presence.txt", "a");
+                if (fichierPresence == NULL) {
+                    printf("Erreur lors de l'ouverture du fichier de présence.\n");
+                    return;
+                }
 
-    char date[20];
-    time_t maintenant = time(NULL);
-    struct tm *tm_maintenant = localtime(&maintenant);
-    strftime(date, sizeof(date), "%Y-%m-%d", tm_maintenant);
+                fprintf(fichierPresence, "%d %s %s %s\n", id, prenom, nom, date);
+                printf("Presence marquée pour %s %s à %s.\n", prenom, nom, date);
 
-    fprintf(fichierPresence, "%d %s %s %s\n", id, prenom, nom, date);
-    printf("Presence marquée pour %s %s.\n", prenom, nom);
+                fclose(fichierPresence);
+            }
+        }
 
-    fclose(fichierPresence);
-}
-void sousMenuApprenant(int c)
-{
-    
-   switch(c)
-    {
-        case 1:
-            marquerPresenceApprenant();
-            break;
-        case 2:
-            break;
-        case 3:
-            break;
-        default:
-            break;
-    }
-}
+    } while (1);
+}*/
 
-void marquerPresenceAdmin(int cl)
-{
-    int id;
-    switch(cl)
-    {
-        case 1:
-            printf("Entrez l'ID de l'etudiant: ");
-            scanf("%d", &id);
-            marquerPresenceId(id, "listeDev.txt");
-            break;
-        case 2:
-            break;
-        case 3:
-            break;
-        default:
-            break;
-    }
-}
+
+
+
+
+
+
+
+
+
+
 
 
 

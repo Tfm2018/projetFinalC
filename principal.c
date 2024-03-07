@@ -7,14 +7,22 @@
 
 int main()
 {
-    int choix,a,b;
-   // int  1; // Exemple de choix de sous-menu
-    //marquerPresenceAdmin(choixSousMenu);
-    a=sousMenuAdmin(authentification());
-    marquerPresenceAdmin(a);
-
-    sousMenuApprenant(authentification());
-
+    //marquerPresenceAdmin();
+    int choix;
+    int sousMenuChoix;
+    sousMenuChoix=authentification();
+    if(sousMenuChoix==2)
+    {
+        choix=afficheMenuApprenant();
+    }
+    else if(sousMenuChoix==1)
+    {
+        choix=afficheMenuAdmin();
+    }
+   
 
     return 0;
 }
+
+
+
