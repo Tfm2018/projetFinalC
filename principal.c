@@ -18,6 +18,10 @@ int main()
     else if(sousMenuChoix==1)
     {
         choix=afficheMenuAdmin();
+        if(choix==3)
+        {
+            marquerPresenceAdmin();
+        }
     }
    
 

@@ -155,7 +155,7 @@ int authentification() {
     }
 }
 
-/*void obtenirNomPrenom(int id, char *nom, char *prenom) 
+void obtenirNomPrenom(int id, char *nom, char *prenom) 
 {
     FILE *fichier = fopen("listeDev.txt", "r");
     if (fichier == NULL) {
@@ -239,7 +239,7 @@ void marquerPresenceAdmin()
         }
 
     } while (1);
-}*/
+}
 
 
 
