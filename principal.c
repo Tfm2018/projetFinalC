@@ -1,4 +1,4 @@
-#include <stdio.h>
+ #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <termios.h>
@@ -14,6 +14,10 @@ int main()
     if(sousMenuChoix==2)
     {
         choix=afficheMenuApprenant();
+        if(choix==1)
+        {
+            marquerPresenceApprenant();
+        }
     }
     else if(sousMenuChoix==1)
     {

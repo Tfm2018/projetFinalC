@@ -6,7 +6,7 @@
 #include <termios.h>
 #include <time.h>
 #define TAILLE_MAX 100
-
+char loginSaisi[TAILLE_MAX];
 #ifdef _WIN32
 #include <conio.h> 
 #else 
@@ -96,13 +96,16 @@ int verifierLoginMdp(const char* Fichier, const char* loginSaisi, const char* md
         return 0; 
     }
 
-    while (fgets(ligne, TAILLE_MAX, infoApprenant) != NULL) {
+    while (fgets(ligne, TAILLE_MAX, infoApprenant) != NULL) 
+    {
         token = strtok(ligne, " ");
-        if (token != NULL) {
+        if (token != NULL) 
+        {
             strcpy(loginFichier, token);
 
             token = strtok(NULL, "\n");
-            if (token != NULL) {
+            if (token != NULL) 
+            {
                 strcpy(mdpFichier, token);
 
                 if (strcmp(loginSaisi, loginFichier) == 0 && strcmp(mdpSaisi, mdpFichier) == 0) {
@@ -118,7 +121,7 @@ int verifierLoginMdp(const char* Fichier, const char* loginSaisi, const char* md
 }
 
 int authentification() {
-    char loginSaisi[TAILLE_MAX];
+    
     char mdpSaisi[TAILLE_MAX];
     int c;
 
@@ -143,13 +146,16 @@ int authentification() {
 
     printf("\n");
 
-    if(verifierLoginMdp("infoAdmin.txt", loginSaisi, mdpSaisi)) {
+    if(verifierLoginMdp("infoAdmin.txt", loginSaisi, mdpSaisi)) 
+    {
         c=1;
         return c;
-    } else if(verifierLoginMdp("infoApprenant.txt", loginSaisi, mdpSaisi)) {
+    } else if(verifierLoginMdp("infoApprenant.txt", loginSaisi, mdpSaisi)) 
+    {
         c=2;
         return c;
-    } else {
+    } else 
+    {
         puts("Login ou mot de passe invalide.");
         return 0;
     }
@@ -157,7 +163,7 @@ int authentification() {
 
 void obtenirNomPrenom(int id, char *nom, char *prenom) 
 {
-    FILE *fichier = fopen("listeDev.txt", "r");
+    FILE *fichier = fopen("listeEtudiants.txt", "r");
     if (fichier == NULL) {
         printf("Erreur lors de l'ouverture du fichier de liste des étudiants.\n");
         return;
@@ -179,21 +185,107 @@ void obtenirNomPrenom(int id, char *nom, char *prenom)
 void marquerPresenceAdmin()
 {
     char choix[TAILLE_MAX]; // Utiliser une chaîne de caractères pour stocker l'entrée de l'utilisateur
-    do {
+    char codeVerification[TAILLE_MAX];
+    do 
+    {
         printf("Entrez votre code ou 'q' pour quitter : ");
         scanf("%s", choix);
 
-        if (strcmp(choix, "q") == 0) 
+        if (strncmp(choix, "q", 1) == 0) 
+        {
+            printf("Mot de passe: ");
+            fgets(codeVerification, TAILLE_MAX, stdin);
+            int i = 0;
+            char cr;
+            while (i < TAILLE_MAX - 1 && (cr = getch()) != '\n') 
+            {
+                putchar('*'); 
+                codeVerification[i++] = cr;
+            }
+            codeVerification[i] = '\0';            
+            printf("\n");
+            if(verifierLoginMdp("infoAdmin.txt", loginSaisi, codeVerification))
+            {
+                break;
+            }
+            else
+            {
+                printf("Mot de passe incorrect. Veuillez réessayer.\n");
+                continue;
+            }            
+        }
+
+
+            int id = atoi(choix); // Convertir la chaîne en entier
+
+            char nom[TAILLE_MAX];
+            char prenom[TAILLE_MAX];
+            obtenirNomPrenom(id, nom, prenom);
+
+            if (nom[0] == '\0' || prenom[0] == '\0') 
+            {
+                printf("L'etudiant n'existe pas.\n");
+            } else {
+                FILE *fichierPresence = fopen("liste_presence.txt", "r");
+                if (fichierPresence == NULL) {
+                    printf("Erreur lors de l'ouverture du fichier de présence.\n");
+                    return;
+                }
+
+                char date[20];
+                time_t maintenant = time(NULL);
+                struct tm *tm_maintenant = localtime(&maintenant);
+                strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", tm_maintenant);
+
+                int dejaPresent = 0;
+                char ligne[TAILLE_MAX];
+                while (fgets(ligne, sizeof(ligne), fichierPresence) != NULL) {
+                    int idFichier;
+                    sscanf(ligne, "%d", &idFichier);
+                    if (idFichier == id) 
+                    {
+                        dejaPresent = 1;
+                        break;
+                    }
+                }
+                fclose(fichierPresence);
+
+                if (dejaPresent) {
+                    printf("L'étudiant est déjà marqué présent.\n");
+                } else {
+                    fichierPresence = fopen("liste_presence.txt", "a");
+                    if (fichierPresence == NULL) {
+                        printf("Erreur lors de l'ouverture du fichier de présence.\n");
+                        return;
+                    }
+
+                    fprintf(fichierPresence, "%d %s %s %s\n", id, prenom, nom, date);
+                    printf("Presence marquée pour %s %s à %s.\n", prenom, nom, date);
+
+                    fclose(fichierPresence);
+                }
+            }
+
+    } while (1);
+}
+
+void marquerPresenceApprenant()
+{
+    char choix[TAILLE_MAX]; // Utiliser une chaîne de caractères pour stocker l'entrée de l'utilisateur
+    char codeVerification[TAILLE_MAX];
+    do 
+    {
+        printf("Entrez votre code pour marquer votre presence ou q pour quitter: ");
+        scanf("%s", choix);
+        if (strncmp(choix, "q", 1) == 0) 
         {
             break;
         }
-
         int id = atoi(choix); // Convertir la chaîne en entier
 
         char nom[TAILLE_MAX];
         char prenom[TAILLE_MAX];
         obtenirNomPrenom(id, nom, prenom);
-
         if (nom[0] == '\0' || prenom[0] == '\0') 
         {
             printf("L'etudiant n'existe pas.\n");
@@ -223,7 +315,7 @@ void marquerPresenceAdmin()
             fclose(fichierPresence);
 
             if (dejaPresent) {
-                printf("L'étudiant est déjà marqué présent.\n");
+                printf("Vous etes déjà marqué présent.\n");
             } else {
                 fichierPresence = fopen("liste_presence.txt", "a");
                 if (fichierPresence == NULL) {
